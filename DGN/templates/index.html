@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAE Generative Model Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d0d0d 0%, #000000 100%);
+            min-height: 100vh;
+            font-family: 'Orbitron', sans-serif;
+            color: #00ff88;
+            overflow-x: hidden;
+        }
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .glow {
+            box-shadow: 0 0 15px #00ff88, 0 0 30px #00ff88;
+            transition: all 0.3s ease;
+        }
+        .glow:hover {
+            box-shadow: 0 0 25px #00ff88, 0 0 40px #00ff88;
+            transform: scale(1.05);
+        }
+        .image-glow {
+            border: 2px solid #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            transition: all 0.3s ease;
+        }
+        .image-glow:hover {
+            box-shadow: 0 0 20px #00ff88;
+            transform: scale(1.1);
+        }
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(2px, -2px); }
+            60% { transform: translate(-2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        .glitched {
+            animation: glitch 1s linear infinite;
+            text-shadow: 2px 2px #ff00ff, -2px -2px #00ffff;
+        }
+        @keyframes scan {
+            0% { background-position: 0 -100vh; }
+            35%, 100% { background-position: 0 100vh; }
+        }
+        .scanned {
+            position: relative;
+            overflow: hidden;
+        }
+        .scanned::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(to bottom, transparent 0%, rgba(0, 255, 136, 0.05) 2px, transparent 2px, transparent 4px);
+            animation: scan 4s linear infinite;
+        }
+        .neon-button {
+            position: relative;
+            background: transparent;
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 10px 20px;
+            text-transform: uppercase;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        .neon-button:hover {
+            color: #000;
+            background: #00ff88;
+            box-shadow: 0 0 20px #00ff88;
+        }
+        .slider-glow::-webkit-slider-thumb {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+    <div id="particles-js"></div>
+    <div class="container mx-auto p-6 relative z-10">
+        <h1 class="text-5xl font-bold text-center text-[#00ff88] mb-6 animate-pulse glitched scanned">
+            Directed Generative Net (VAE) Demo
+        </h1>
+        <p class="text-xl text-center mb-8 opacity-80 scanned">
+            Enter a cyber realm: Generate MNIST digits with AI. Adjust parameters, interpolate latents, and download your creations!
+        </p>
+
+        <form method="post" class="flex flex-col items-center space-y-6">
+            <input type="hidden" name="generate" value="1">
+            <div class="w-full max-w-md">
+                <label for="num_samples" class="block text-sm font-medium text-[#00ff88] mb-2">
+                    Number of Samples (1–20)
+                </label>
+                <input type="range" id="num_samples" name="num_samples" min="1" max="20" value="{{ num_samples }}" 
+                       class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-glow">
+            </div>
+            <div class="w-full max-w-md">
+                <label for="seed" class="block text-sm font-medium text-[#00ff88] mb-2">
+                    Random Seed (Optional, for Reproducibility)
+                </label>
+                <input type="text" id="seed" name="seed" value="{{ seed if seed else '' }}" placeholder="Enter a number" 
+                       class="w-full bg-gray-800 border border-[#00ff88] text-white p-2 rounded glow">
+            </div>
+            <button type="submit" class="neon-button glow">
+                Generate Samples
+            </button>
+        </form>
+
+        <!-- Interpolation Section -->
+        <div class="mt-12">
+            <h2 class="text-3xl font-semibold text-[#00ff88] mb-6 text-center glitched">Latent Space Interpolation</h2>
+            <form id="interp-form" class="flex flex-col items-center space-y-4">
+                <div class="flex space-x-4">
+                    <input type="text" id="seed_a" name="seed_a" placeholder="Seed A" class="bg-gray-800 border border-[#00ff88] text-white p-2 rounded glow w-32">
+                    <input type="text" id="seed_b" name="seed_b" placeholder="Seed B" class="bg-gray-800 border border-[#00ff88] text-white p-2 rounded glow w-32">
+                </div>
+                <label for="alpha" class="block text-sm font-medium text-[#00ff88] mb-2">Interpolation Factor (0-1)</label>
+                <input type="range" id="alpha" name="alpha" min="0" max="1" step="0.01" value="0.5" class="w-64 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-glow">
+                <img id="interp-preview" src="" alt="Interpolated Image" class="w-32 h-32 mt-4 image-glow" style="display: none;">
+            </form>
+        </div>
+
+        {% if images %}
+        <h2 class="text-3xl font-semibold text-[#00ff88] mt-12 mb-6 text-center glitched">Generated Digits</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {% for img in images %}
+            <img src="{{ url_for('static', filename=img) }}" alt="Generated Digit" 
+                 class="w-32 h-32 object-contain bg-gray-900 rounded-lg image-glow scanned">
+            {% endfor %}
+        </div>
+        <div class="flex justify-center space-x-4 mt-8">
+            <a href="/download" class="neon-button glow">Download ZIP</a>
+            <form method="post">
+                <input type="hidden" name="clear" value="1">
+                <button type="submit" class="neon-button glow">Clear Images</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Particles.js config for cyberpunk theme (green neon particles)
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#00ff88' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: false },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 150, color: '#00ff88', opacity: 0.4, width: 1 },
+                move: { enable: true, speed: 2, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+                modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+            },
+            retina_detect: true
+        });
+
+        // JavaScript for real-time interpolation preview
+        const alphaSlider = document.getElementById('alpha');
+        const seedA = document.getElementById('seed_a');
+        const seedB = document.getElementById('seed_b');
+        const previewImg = document.getElementById('interp-preview');
+
+        function updatePreview() {
+            const alpha = alphaSlider.value;
+            const sa = seedA.value || 0;
+            const sb = seedB.value || 1;
+            if (sa && sb) {
+                fetch('/interpolate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `alpha=${alpha}&seed_a=${sa}&seed_b=${sb}`
+                })
+                .then(response => response.blob())
+                .then(blob => {
+                    previewImg.src = URL.createObjectURL(blob);
+                    previewImg.style.display = 'block';
+                });
+            }
+        }
+
+        alphaSlider.addEventListener('input', updatePreview);
+        seedA.addEventListener('input', updatePreview);
+        seedB.addEventListener('input', updatePreview);
+    </script>
+</body>
+</html>
