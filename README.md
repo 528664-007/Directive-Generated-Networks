@@ -90,7 +90,7 @@ DIRECTED_GEN_NET_PROJECT/
 ├── app.py          # Flask web server
 ├── model.py        # VAE model definition
 ├── train.py        # Training script
-└── vae_model.pth   # Trained model weights
+└── vae_model.pth   # Trained model weights -- run train.py to create vae_model.pth (data folder will also be automatically created)
 ```
 
 ## Contributing
@@ -105,9 +105,6 @@ Contributions are welcome! To contribute:
 
 Please ensure your code follows the project's style and includes tests if applicable.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
@@ -117,7 +114,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-For questions or feedback, please open an issue or reach out via [your-email@example.com](mailto:your-email@example.com).
+For questions or feedback, please open an issue or reach out via-(mailto:sameerfayaz1028@gmail.com).
 
 ---
 
